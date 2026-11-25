@@ -1,0 +1,63 @@
+name: API checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: emenu
+          POSTGRES_USER: emenu
+          POSTGRES_PASSWORD: ci-only
+        options: >-
+          --health-cmd "pg_isready -U emenu -d emenu"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:8-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: shivammathur/setup-php@d52fc211a0436f8839a587b3b5b8efddab4744ea # v2
+        with:
+          php-version: '8.4'
+          extensions: gd, pdo_pgsql, zip
+          coverage: none
+          tools: composer:v2
+      - run: composer validate --strict
+      - run: composer install --no-interaction --prefer-dist
+      - run: composer check-platform-reqs
+      - run: composer audit --locked
+      - run: composer lint
+      - run: composer analyse
+      - name: Create the isolated test database
+        run: php -r '(new PDO("pgsql:host=127.0.0.1;dbname=emenu", "emenu", "ci-only"))->exec("CREATE DATABASE emenu_test");'
+      - run: composer test
+        env:
+          DB_PASSWORD: ci-only
+      - name: Verify HTTP health and database readiness
+        env:
+          DB_PASSWORD: ci-only
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan serve --host=127.0.0.1 --port=8000 > "${RUNNER_TEMP}/api.log" 2>&1 &
+          curl --fail --silent --show-error --retry 10 --retry-connrefused http://127.0.0.1:8000/api/health
+          curl --fail --silent --show-error http://127.0.0.1:8000/api/ready

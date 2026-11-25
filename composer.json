@@ -1,0 +1,55 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "emenu/api",
+    "description": "Laravel API for the Digital Menu platform.",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "~8.4.1",
+        "ext-gd": "*",
+        "ext-pdo_pgsql": "*",
+        "bacon/bacon-qr-code": "~3.0.3",
+        "laravel/framework": "^13.43",
+        "laravel/sanctum": "^4.5",
+        "league/flysystem-aws-s3-v3": "^3.25.1",
+        "predis/predis": "^3.0"
+    },
+    "require-dev": {
+        "larastan/larastan": "^3.15",
+        "laravel/pint": "^1.32",
+        "mockery/mockery": "^1.6",
+        "pestphp/pest": "^5.3.7",
+        "pestphp/pest-plugin-laravel": "^5.0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "test": "@php vendor/bin/pest",
+        "analyse": "@php vendor/bin/phpstan analyse --memory-limit=512M --no-progress",
+        "lint": "@php vendor/bin/pint --test"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "platform": {
+            "php": "8.4.1"
+        },
+        "preferred-install": "dist",
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
